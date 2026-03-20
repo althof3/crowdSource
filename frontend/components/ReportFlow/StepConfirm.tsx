@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useWallet } from '@solana/web3.js';
 import { supabase } from '@/lib/supabase';
 import { GPSCoords, getGoogleMapsUrl } from '@/lib/exif';
 import { Loader2, ArrowLeft, Send, MapPin, Calendar, Wallet } from 'lucide-react';

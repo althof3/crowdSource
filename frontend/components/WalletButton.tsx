@@ -4,7 +4,6 @@ import React, { useEffect, useState } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import { supabase } from '@/lib/supabase';
-import { decode as decodeBase58 } from 'bs58';
 import { Loader2, LogOut, Wallet } from 'lucide-react';
 
 export const WalletButton = () => {
