@@ -1,0 +1,15 @@
+# python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+ENV/
+
+# models (usually too big for git)
+*.pt
+*.onnx
+
+# local env
+.env
