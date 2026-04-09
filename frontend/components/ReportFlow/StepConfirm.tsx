@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { supabase } from '@/lib/supabase';
 import { GPSCoords, getGoogleMapsUrl } from '@/lib/exif';
 import { Loader2, ArrowLeft, Send, MapPin, Calendar, Wallet } from 'lucide-react';
 import { ReportCategory } from '@/app/report/page';
@@ -33,57 +32,15 @@ export const StepConfirm = ({ category, photo, coords, onConfirm, onBack }: Step
       setLoading(true);
       setError(null);
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setError("Silakan login dengan wallet Anda terlebih dahulu.");
-        return;
-      }
+      // Simulasi proses pengiriman instant
+      await new Promise(resolve => setTimeout(resolve, 800));
 
-      const walletAddress = user.user_metadata.wallet;
-
-      // 1. Upload photo to Supabase Storage
-      const fileExt = photo.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `reports/${fileName}`;
-
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('reports')
-        .upload(filePath, photo);
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('reports')
-        .getPublicUrl(filePath);
-
-      // 2. AI Validation (Placeholder - call FastAPI later)
-      // For now, we assume it's valid for this step implementation
-      
-      // 3. Save report to Supabase
-      const { data: reportData, error: reportError } = await supabase
-        .from('reports')
-        .insert({
-          reporter_wallet: walletAddress,
-          category,
-          lat: coords.lat,
-          lng: coords.lng,
-          photo_url: publicUrl,
-          status: 'pending',
-        })
-        .select()
-        .single();
-
-      if (reportError) throw reportError;
-
-      // 4. Solana transaction (Placeholder - will implement after contract)
-      // For now, we simulate a TX hash
-      const mockTxHash = '5f2k...3h9m';
-      
+      const mockTxHash = '7xWp...9Rz2m';
       onConfirm(mockTxHash);
 
     } catch (err: any) {
       console.error('Submit report error:', err);
-      setError(err.message || "Gagal mengirim laporan. Silakan coba lagi.");
+      setError("Gagal mengirim laporan. Silakan coba lagi.");
     } finally {
       setLoading(false);
     }

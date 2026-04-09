@@ -3,74 +3,30 @@
 import React, { useEffect, useState } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
-import { supabase } from '@/lib/supabase';
 import { Loader2, LogOut, Wallet } from 'lucide-react';
 
 export const WalletButton = () => {
   const { publicKey, signMessage, disconnect, connected } = useWallet();
   const { setVisible } = useWalletModal();
   const [loading, setLoading] = useState(false);
-  const [user, setUser] = useState<any>(null);
-
-  useEffect(() => {
-    const fetchUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-    };
-    fetchUser();
-  }, []);
+  const [user, setUser] = useState<any>({
+    user_metadata: {
+      wallet: 'vS123...xyz'
+    }
+  });
 
   const handleSignIn = async () => {
-    if (!publicKey || !signMessage) return;
-
-    try {
-      setLoading(true);
-      
-      // 1. Get nonce from Supabase Edge Function
-      const { data: nonceData, error: nonceError } = await supabase.functions.invoke('get-nonce', {
-        body: { wallet: publicKey.toBase58() },
-      });
-
-      if (nonceError) throw nonceError;
-      const { nonce } = nonceData;
-
-      // 2. Sign message
-      const message = `Sign in to CrowdRadar\nNonce: ${nonce}\nDomain: crowdradar.id`;
-      const encodedMessage = new TextEncoder().encode(message);
-      const signature = await signMessage(encodedMessage);
-
-      // 3. Auth with wallet-auth Edge Function
-      const { data: authData, error: authError } = await supabase.functions.invoke('wallet-auth', {
-        body: {
-          publicKey: publicKey.toBase58(),
-          signature: Array.from(signature),
-          message,
-          nonce,
-        },
-      });
-
-      if (authError) throw authError;
-
-      // 4. Set Supabase session
-      const { error: sessionError } = await supabase.auth.setSession({
-        access_token: authData.access_token,
-        refresh_token: authData.refresh_token,
-      });
-
-      if (sessionError) throw sessionError;
-      
-      setUser(authData.user);
-    } catch (err) {
-      console.error('Sign in error:', err);
-      alert('Authentication failed');
-    } finally {
-      setLoading(false);
-    }
+    setLoading(true);
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    setUser({
+      user_metadata: {
+        wallet: 'vS123...xyz'
+      }
+    });
+    setLoading(false);
   };
 
   const handleLogout = async () => {
-    await disconnect();
-    await supabase.auth.signOut();
     setUser(null);
   };
 
@@ -85,17 +41,24 @@ export const WalletButton = () => {
 
   if (user) {
     return (
-      <div className="flex items-center gap-3">
-        <div className="hidden md:flex flex-col items-end">
-          <span className="text-xs text-gray-400">Connected</span>
-          <span className="text-sm font-mono">{user.user_metadata.wallet.slice(0, 4)}...{user.user_metadata.wallet.slice(-4)}</span>
+      <div className="flex flex-col gap-2.5">
+        <div className="flex flex-col">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Status</span>
+          <span className="text-xs text-green_verified flex items-center gap-1.5 mt-0.5">
+            <span className="h-1.5 w-1.5 rounded-full bg-green_verified animate-pulse" />
+            Terhubung
+          </span>
+        </div>
+        <div className="flex flex-col">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Wallet</span>
+          <span className="text-sm font-mono text-white mt-0.5">{user.user_metadata.wallet}</span>
         </div>
         <button
           onClick={handleLogout}
-          className="flex items-center gap-2 bg-red-500/10 hover:bg-red-500/20 px-4 py-2 rounded-lg border border-red-500/30 text-red-400 transition-colors"
+          className="flex w-full items-center justify-center gap-2 rounded-lg border border-red-500/20 bg-red-500/5 py-2 text-xs font-semibold text-red-300 transition-colors hover:bg-red-500/10"
         >
-          <LogOut className="w-4 h-4" />
-          <span className="hidden sm:inline">Logout</span>
+          <LogOut className="h-3.5 w-3.5" />
+          Logout
         </button>
       </div>
     );
@@ -105,9 +68,9 @@ export const WalletButton = () => {
     return (
       <button
         onClick={handleSignIn}
-        className="flex items-center gap-2 bg-accent hover:bg-accent/90 px-4 py-2 rounded-lg text-white font-medium transition-colors"
+        className="flex w-full items-center justify-center gap-2 rounded-lg bg-accent py-2 text-xs font-semibold text-white transition-colors hover:bg-accent/90"
       >
-        <Wallet className="w-4 h-4" />
+        <Wallet className="h-3.5 w-3.5" />
         Sign in to App
       </button>
     );
@@ -116,9 +79,9 @@ export const WalletButton = () => {
   return (
     <button
       onClick={() => setVisible(true)}
-      className="flex items-center gap-2 bg-accent hover:bg-accent/90 px-4 py-2 rounded-lg text-white font-medium transition-colors"
+      className="flex w-full items-center justify-center gap-2 rounded-lg bg-accent py-2 text-xs font-semibold text-white transition-colors hover:bg-accent/90"
     >
-      <Wallet className="w-4 h-4" />
+      <Wallet className="h-3.5 w-3.5" />
       Connect Wallet
     </button>
   );

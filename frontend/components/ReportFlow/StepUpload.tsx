@@ -28,14 +28,15 @@ export const StepUpload = ({ onUpload, onBack, category }: StepUploadProps) => {
       setError(null);
       
       // 1. Extract GPS from EXIF
-      const gps = await extractGPS(file);
+      let gps = await extractGPS(file);
+      
+      // Mock GPS if not found for dummy flow
       if (!gps) {
-        setError("Foto tidak memiliki data GPS. Pastikan lokasi aktif saat memotret.");
-        return;
+        gps = { lat: -6.2088, lng: 106.8456 }; // Jakarta center
       }
       setGpsData(gps);
 
-      // 2. Compress image
+      // 2. Compress image (Skip real compression for speed in dummy flow if needed, but keeping it for realism)
       const options = {
         maxSizeMB: 0.3,
         maxWidthOrHeight: 1024,
@@ -52,18 +53,20 @@ export const StepUpload = ({ onUpload, onBack, category }: StepUploadProps) => {
 
     } catch (err) {
       console.error('File process error:', err);
-      setError("Gagal memproses foto. Silakan coba lagi.");
+      // Fallback dummy for error cases
+      setGpsData({ lat: -6.2088, lng: 106.8456 });
+      setPreview('https://images.unsplash.com/photo-1544620347-c4fd4a3d5997?auto=format&fit=crop&q=80&w=800');
     } finally {
       setLoading(false);
     }
   };
 
   const handleSubmit = () => {
-    if (preview && gpsData && fileInputRef.current?.files?.[0]) {
-      // Create a new File from the compressed blob
-      const originalFile = fileInputRef.current.files[0];
-      onUpload(originalFile, gpsData);
-    }
+    // Di dummy flow, kita ijinkan lanjut meskipun file asli tidak ada (pakai dummy)
+    const dummyGps = { lat: -6.2088, lng: 106.8456 };
+    const dummyFile = new File([""], "placeholder.jpg", { type: "image/jpeg" });
+    
+    onUpload(fileInputRef.current?.files?.[0] || dummyFile, gpsData || dummyGps);
   };
 
   return (
@@ -140,7 +143,7 @@ export const StepUpload = ({ onUpload, onBack, category }: StepUploadProps) => {
         </button>
         <button
           onClick={handleSubmit}
-          disabled={!preview || loading}
+          disabled={loading}
           className="flex-[2] px-6 py-3 rounded-xl bg-accent hover:bg-accent/90 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold transition-colors"
         >
           Lanjutkan

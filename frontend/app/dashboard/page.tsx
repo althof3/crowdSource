@@ -3,8 +3,9 @@
 import React, { useEffect, useState } from 'react';
 import { AppShell } from '@/components/AppShell';
 import { clsx } from 'clsx';
-import { supabase, Sayembara, Report, Profile } from '@/lib/supabase';
+import { Sayembara, Report, Profile } from '@/lib/supabase';
 import { Loader2, Plus } from 'lucide-react';
+import { DUMMY_SAYEMBARA, DUMMY_REPORTS, DUMMY_PROFILE } from '@/lib/dummy';
 
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
@@ -17,21 +18,12 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
-        const wallet = user.user_metadata.wallet;
-
-        const [profileRes, sayembarasRes] = await Promise.all([
-          supabase.from('profiles').select('*').eq('wallet', wallet).single(),
-          supabase.from('sayembaras').select('*').eq('author_wallet', wallet).order('created_at', { ascending: false })
-        ]);
-
-        if (profileRes.data) setProfile(profileRes.data);
-        if (sayembarasRes.data) {
-          setSayembaras(sayembarasRes.data);
-          if (sayembarasRes.data.length > 0) setActiveSayembara(sayembarasRes.data[0]);
-        }
+        // Simulasi loading
+        await new Promise(resolve => setTimeout(resolve, 800));
+        
+        setProfile({ ...DUMMY_PROFILE, is_verified_org: true });
+        setSayembaras(DUMMY_SAYEMBARA);
+        if (DUMMY_SAYEMBARA.length > 0) setActiveSayembara(DUMMY_SAYEMBARA[0]);
       } catch (err) {
         console.error('Error fetching dashboard data:', err);
       } finally {
@@ -43,15 +35,11 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (activeSayembara) {
-      const fetchReports = async () => {
-        const { data } = await supabase
-          .from('reports')
-          .select('*')
-          .eq('provinsi_id', activeSayembara.provinsi_id)
-          .order('upvote_count', { ascending: false });
-        if (data) setReports(data);
-      };
-      fetchReports();
+      // Ambil laporan yang sesuai kategori sayembara agar terlihat logis
+      const filtered = DUMMY_REPORTS.filter(r => 
+        activeSayembara.category === 'both' || r.category === activeSayembara.category
+      );
+      setReports(filtered);
     }
   }, [activeSayembara]);
 

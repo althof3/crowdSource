@@ -2,9 +2,10 @@
 
 import React, { useEffect, useState } from 'react';
 import { AppShell } from '@/components/AppShell';
-import { supabase, Profile } from '@/lib/supabase';
+import { Profile } from '@/lib/supabase';
 import { clsx } from 'clsx';
 import { Loader2 } from 'lucide-react';
+import { DUMMY_PROFILE } from '@/lib/dummy';
 
 export default function LeaderboardPage() {
   const [loading, setLoading] = useState(true);
@@ -19,17 +20,23 @@ export default function LeaderboardPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [profilesRes, reportsRes, confirmedRes] = await Promise.all([
-          supabase.from('profiles').select('*').order('reputation', { ascending: false }).limit(20),
-          supabase.from('reports').select('count', { count: 'exact' }),
-          supabase.from('reports').select('count', { count: 'exact' }).eq('status', 'confirmed')
-        ]);
+        // Simulasi loading
+        await new Promise(resolve => setTimeout(resolve, 600));
 
-        if (profilesRes.data) setProfiles(profilesRes.data);
+        // Generate more dummy profiles for leaderboard
+        const moreProfiles: Profile[] = [
+          DUMMY_PROFILE,
+          { id: 'p2', wallet: 'Gv7a...xY2', reputation: 1250, is_verified_org: false, created_at: '' },
+          { id: 'p3', wallet: '8uN1...kL9', reputation: 980, is_verified_org: false, created_at: '' },
+          { id: 'p4', wallet: '4mQp...2zR', reputation: 720, is_verified_org: false, created_at: '' },
+          { id: 'p5', wallet: 'Wy3e...9tV', reputation: 450, is_verified_org: false, created_at: '' },
+        ].sort((a, b) => b.reputation - a.reputation);
+
+        setProfiles(moreProfiles);
         setStats({
-          totalReports: reportsRes.count || 0,
-          totalVerified: confirmedRes.count || 0,
-          totalSOL: 125.5 // Mock total SOL distributed
+          totalReports: 156,
+          totalVerified: 124,
+          totalSOL: 45.8
         });
       } catch (err) {
         console.error('Error fetching leaderboard data:', err);
@@ -42,11 +49,7 @@ export default function LeaderboardPage() {
 
   useEffect(() => {
     const fetchMe = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      const wallet = user?.user_metadata?.wallet as string | undefined;
-      if (!wallet) return;
-      const { data } = await supabase.from('profiles').select('*').eq('wallet', wallet).single();
-      if (data) setMe(data);
+      setMe(DUMMY_PROFILE);
     };
     fetchMe();
   }, []);

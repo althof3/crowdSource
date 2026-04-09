@@ -3,14 +3,16 @@
 import React, { useEffect, useRef } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { supabase, Report } from '@/lib/supabase';
+import { Report } from '@/lib/supabase';
 
 interface MapProps {
   reports?: Report[];
   selectedReport?: Report | null;
+  onSelectReport?: (id: string | null) => void;
+  onMove?: (viewState: { lat: number; lng: number; zoom: number }) => void;
 }
 
-export const Map = ({ reports = [], selectedReport = null }: MapProps) => {
+export const Map = ({ reports = [], selectedReport = null, onSelectReport, onMove }: MapProps) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const selectedRef = useRef<Report | null>(null);
@@ -38,14 +40,13 @@ export const Map = ({ reports = [], selectedReport = null }: MapProps) => {
 
   useEffect(() => {
     let cancelled = false;
-    // let channel: ReturnType<typeof supabase.channel> | null = null;
 
     const init = async () => {
       if (map.current) return;
       if (!mapContainer.current) return;
 
-      const defaultCenter: [number, number] = [106.8456, -6.2088];
-      const defaultZoom = 16;
+      const defaultCenter: [number, number] = [117.5423, -4.5878]; 
+      const defaultZoom = 4.19;
 
       let center = defaultCenter;
       if (typeof navigator !== 'undefined' && 'geolocation' in navigator) {
@@ -79,13 +80,13 @@ export const Map = ({ reports = [], selectedReport = null }: MapProps) => {
         }
       }
 
-      map.current.addControl(new maplibregl.NavigationControl(), 'top-right');
+      map.current.addControl(new maplibregl.NavigationControl(), 'bottom-right');
       map.current.addControl(
         new maplibregl.GeolocateControl({
           positionOptions: { enableHighAccuracy: true },
           trackUserLocation: true,
         }),
-        'top-right'
+        'bottom-right'
       );
 
       map.current.on('load', () => {
@@ -160,27 +161,39 @@ export const Map = ({ reports = [], selectedReport = null }: MapProps) => {
             'circle-stroke-color': '#fff',
           },
         });
+
+        // Add Click Handlers
+        ['potholes', 'crimes'].forEach((layerId) => {
+          if (!map.current) return;
+          
+          map.current.on('click', layerId, (e) => {
+            if (e.features && e.features[0]) {
+              const props = e.features[0].properties as Report;
+              if (onSelectReport) onSelectReport(props.id);
+            }
+          });
+
+          map.current.on('mouseenter', layerId, () => {
+            if (map.current) map.current.getCanvas().style.cursor = 'pointer';
+          });
+
+          map.current.on('mouseleave', layerId, () => {
+            if (map.current) map.current.getCanvas().style.cursor = '';
+          });
+        });
+
+        map.current.on('move', () => {
+          if (map.current && onMove) {
+            const center = map.current.getCenter();
+            onMove({
+              lat: center.lat,
+              lng: center.lng,
+              zoom: map.current.getZoom(),
+            });
+          }
+        });
       });
 
-      // channel = supabase
-      //   .channel('reports-realtime')
-      //   .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'reports' }, () => {
-      //     supabase.from('reports').select('*').then(({ data }) => {
-      //       if (!data) return;
-      //       if (!map.current) return;
-      //       const source = map.current.getSource('reports') as maplibregl.GeoJSONSource | undefined;
-      //       if (!source) return;
-      //       source.setData({
-      //         type: 'FeatureCollection',
-      //         features: data.map((r) => ({
-      //           type: 'Feature',
-      //           geometry: { type: 'Point', coordinates: [r.lng, r.lat] },
-      //           properties: r,
-      //         })),
-      //       });
-      //     });
-      //   })
-      //   .subscribe();
     };
 
     init();

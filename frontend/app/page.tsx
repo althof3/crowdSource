@@ -5,20 +5,15 @@ import Link from 'next/link';
 import { clsx } from 'clsx';
 import { AppShell } from '@/components/AppShell';
 import { Map } from '@/components/Map';
-import { supabase, Report } from '@/lib/supabase';
+import { Report } from '@/lib/supabase';
+import { DUMMY_REPORTS } from '@/lib/dummy';
 
 export default function Home() {
   const [filter, setFilter] = useState<'all' | Report['category']>('all');
-  const [reports, setReports] = useState<Report[]>([]);
+  const [reports, setReports] = useState<Report[]>(DUMMY_REPORTS);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchReports = async () => {
-      const { data } = await supabase.from('reports').select('*').order('created_at', { ascending: false }).limit(50);
-      if (data) setReports(data);
-    };
-    fetchReports();
-  }, []);
+  
+  const [viewport, setViewport] = useState({ lat: -2.0113, lng: 117.5423, zoom: 4.19 });
 
   const filtered = useMemo(() => {
     if (filter === 'all') return reports;
@@ -29,143 +24,152 @@ export default function Home() {
 
   return (
     <AppShell>
-      <div className="flex flex-col gap-4">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <div className="text-lg font-semibold">Peta Laporan</div>
-            <div className="text-sm text-slate-400">Radius 5KM · Jakarta Pusat</div>
+      <div className="relative -m-5 h-[calc(100vh-0px)] overflow-hidden bg-background">
+        {/* Full Screen Map */}
+        <div className="absolute inset-0 z-0">
+          <Map 
+            reports={filtered} 
+            selectedReport={selected} 
+            onSelectReport={(id) => setSelectedId(id)} 
+            onMove={(v) => setViewport(v)}
+          />
+        </div>
+
+        {/* Floating Header Controls */}
+        <div className={clsx(
+          "absolute top-4 z-20 flex flex-col gap-3 sm:flex-row sm:items-center transition-all duration-500 ease-in-out",
+          selected ? "left-[384px]" : "left-4"
+        )}>
+          <div className="flex h-12 items-center gap-3 rounded-2xl border border-white/10 bg-card/80 px-4 py-2 shadow-2xl backdrop-blur-xl">
+             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/20 text-accent">
+               📍
+             </div>
+             <div>
+               <div className="text-sm font-bold text-white leading-none">CrowdRadar</div>
+               <div className="mt-1 text-[10px] text-slate-400">Peta Indonesia</div>
+             </div>
           </div>
+
+          <div className="flex gap-2">
+            {([
+              ['all', 'Semua'],
+              ['pothole', 'Jalan Rusak'],
+              ['crime', 'Kejahatan'],
+            ] as const).map(([key, label]) => (
+              <button
+                key={key}
+                onClick={() => setFilter(key as any)}
+                className={clsx(
+                  'h-12 rounded-2xl border px-5 text-xs font-bold transition-all shadow-xl backdrop-blur-xl outline-none',
+                  filter === key
+                    ? 'border-accent bg-accent text-white shadow-accent/20'
+                    : 'border-white/10 bg-card/80 text-slate-300 hover:border-accent/40 hover:bg-accent/10 hover:text-white'
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Bottom Center Floating Action Button (FAB) for Report */}
+        <div className="absolute bottom-24 left-1/2 z-40 -translate-x-1/2 flex justify-center w-full max-w-xs px-4">
           <Link
             href="/report"
-            className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-accent/90"
+            className="flex h-14 w-full items-center justify-center gap-3 rounded-full bg-accent px-8 text-base font-bold text-white shadow-[0_0_40px_rgba(59,130,246,0.5)] hover:bg-accent/90 transition-all hover:scale-105 active:scale-95"
           >
-            + Laporkan
+            <span className="text-2xl font-light">+</span> Buat Laporan
           </Link>
         </div>
 
-        <div className="flex gap-2">
-          {([
-            ['all', 'Semua'],
-            ['pothole', 'Jalan Rusak'],
-            ['crime', 'Kejahatan'],
-          ] as const).map(([key, label]) => (
-            <button
-              key={key}
-              onClick={() => setFilter(key as any)}
-              className={clsx(
-                'rounded-full border px-4 py-1.5 text-xs font-medium transition-colors',
-                filter === key
-                  ? 'border-accent bg-accent/20 text-accent'
-                  : 'border-white/10 bg-transparent text-slate-400 hover:bg-white/5 hover:text-white'
-              )}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
-        <div className="overflow-hidden rounded-xl border border-white/10 bg-card">
-          <div className="relative h-[260px]">
-            <Map reports={filtered} selectedReport={selected} />
-            {/* <div className="pointer-events-none absolute left-3 top-3 rounded-md border border-white/10 bg-card/80 px-2 py-1 text-[10px] text-slate-400 backdrop-blur">
-              MapLibre + OpenFreeMap
-            </div> */}
-            <div className="pointer-events-none absolute bottom-3 right-3 rounded-md flex gap-3 text-[10px] text-slate-400 bg-card/80 px-2 py-1 backdrop-blur">
-              <div className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-orange_pothole" />
-                Jalan Rusak
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-red_crime" />
-                Kejahatan
-              </div>
-            </div>
-          </div>
-        </div>
-
+        {/* Left-side Sidebar Detail (Google Maps style) */}
         {selected && (
-          <div className="rounded-xl border border-white/10 bg-card p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex flex-wrap gap-2">
-                <span
-                  className={clsx(
-                    'rounded-full px-2 py-0.5 text-[11px] font-semibold',
-                    selected.category === 'pothole' ? 'bg-orange_pothole/20 text-orange_pothole' : 'bg-red_crime/20 text-red_crime'
-                  )}
-                >
-                  {selected.category === 'pothole' ? 'Jalan Rusak' : 'Kejahatan'}
-                </span>
-                <span
-                  className={clsx(
-                    'rounded-full px-2 py-0.5 text-[11px] font-semibold',
-                    selected.status === 'confirmed' ? 'bg-green_verified/20 text-green_verified' : 'bg-yellow-500/20 text-yellow-400'
-                  )}
-                >
-                  {selected.status === 'confirmed' ? 'Verified' : 'Pending'}
-                </span>
-              </div>
-              <button
-                onClick={() => setSelectedId(null)}
-                className="rounded-md px-2 py-1 text-slate-400 hover:bg-white/5 hover:text-white"
-              >
-                ×
-              </button>
-            </div>
-            <div className="mt-2 text-sm font-semibold text-white">Koordinat laporan</div>
-            <div className="mt-0.5 text-xs text-slate-400">
-              {selected.lat.toFixed(4)}, {selected.lng.toFixed(4)} · {new Date(selected.created_at).toLocaleString('id-ID')}
-            </div>
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <a
-                href={`https://www.google.com/maps?q=${selected.lat},${selected.lng}`}
-                target="_blank"
-                rel="noreferrer"
-                className="rounded-md border border-accent/30 bg-accent/10 px-3 py-1.5 text-xs font-semibold text-accent hover:bg-accent/15"
-              >
-                📍 Google Maps
-              </a>
-              <button className="rounded-md bg-accent/10 px-3 py-1.5 text-xs font-semibold text-accent hover:bg-accent/15">
-                ▲ Upvote
-              </button>
+          <div className="absolute inset-y-0 left-0 z-30 w-full max-w-[360px] p-4 pointer-events-none">
+            <div className="pointer-events-auto h-full w-full overflow-y-auto rounded-3xl border border-white/10 bg-card/90 shadow-2xl backdrop-blur-2xl animate-in slide-in-from-left duration-500 ease-out">
+               <div className="relative h-48 w-full shrink-0">
+                 <img src={selected.photo_url} alt="Proof" className="h-full w-full object-cover" />
+                 <button
+                    onClick={() => setSelectedId(null)}
+                    className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-md hover:bg-black/60 transition-colors"
+                  >
+                    ×
+                  </button>
+                  <div className="absolute bottom-3 left-3 flex gap-2">
+                    <span
+                      className={clsx(
+                        'rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider shadow-lg',
+                        selected.category === 'pothole' ? 'bg-orange_pothole text-white' : 'bg-red_crime text-white'
+                      )}
+                    >
+                      {selected.category === 'pothole' ? 'Jalan Rusak' : 'Kejahatan'}
+                    </span>
+                    <span className="rounded-full bg-white/90 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-black shadow-lg">
+                      {selected.status === 'confirmed' ? 'Verified' : 'Pending'}
+                    </span>
+                  </div>
+               </div>
+
+               <div className="p-6">
+                 <div>
+                   <h3 className="text-xl font-bold text-white">Laporan #{selected.id.slice(0, 6)}</h3>
+                   <p className="mt-1 text-xs text-slate-400">
+                     Dilaporkan pada {new Date(selected.created_at).toLocaleString('id-ID')}
+                   </p>
+                 </div>
+
+                 <div className="mt-6 flex flex-col gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/5 text-lg">
+                        📍
+                      </div>
+                      <div>
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 text-left">Koordinat</div>
+                        <div className="text-sm font-medium text-white">{selected.lat.toFixed(4)}, {selected.lng.toFixed(4)}</div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/5 text-lg text-left">
+                        ▲
+                      </div>
+                      <div>
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Reputasi</div>
+                        <div className="text-sm font-medium text-white">{selected.upvote_count} Upvotes</div>
+                      </div>
+                    </div>
+                 </div>
+
+                 <div className="mt-8 flex flex-col gap-3">
+                    <a
+                      href={`https://www.google.com/maps?q=${selected.lat},${selected.lng}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-white/5 border border-white/10 text-sm font-bold text-white transition-all hover:bg-white/10"
+                    >
+                      📍 Buka Google Maps
+                    </a>
+                    <button className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-accent text-sm font-bold text-white shadow-xl shadow-accent/20 transition-all hover:bg-accent/90">
+                      ▲ Upvote Sekarang
+                    </button>
+                    <button className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-red-500/10 border border-red-500/20 text-sm font-bold text-red-400 transition-all hover:bg-red-500/20">
+                      🚨 Laporkan Spam
+                    </button>
+                 </div>
+               </div>
             </div>
           </div>
         )}
 
-        <div className="flex flex-col gap-2">
-          {filtered.map((r) => (
-            <button
-              key={r.id}
-              onClick={() => setSelectedId((prev) => (prev === r.id ? null : r.id))}
-              className={clsx(
-                'flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors',
-                selectedId === r.id ? 'border-white/20 bg-white/5' : 'border-white/10 bg-card hover:bg-white/5'
-              )}
-            >
-              <div className="text-lg">{r.category === 'pothole' ? '🕳️' : '🚨'}</div>
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-semibold text-white">Laporan #{r.id.slice(0, 6)}</div>
-                <div className="text-xs text-slate-400">
-                  {new Date(r.created_at).toLocaleString('id-ID')} · {r.lat.toFixed(4)}, {r.lng.toFixed(4)}
-                </div>
-              </div>
-              <div className="flex flex-col items-end gap-1">
-                <span
-                  className={clsx(
-                    'rounded-full px-2 py-0.5 text-[11px] font-semibold',
-                    r.status === 'confirmed' ? 'bg-green_verified/20 text-green_verified' : 'bg-yellow-500/20 text-yellow-400'
-                  )}
-                >
-                  {r.status === 'confirmed' ? 'Verified' : 'Pending'}
-                </span>
-                <span className="text-xs text-slate-400">▲ {r.upvote_count ?? 0}</span>
-              </div>
-            </button>
-          ))}
-          {filtered.length === 0 && (
-            <div className="rounded-xl border border-white/10 bg-card p-8 text-center text-sm text-slate-400">
-              Belum ada laporan untuk filter ini.
+        {/* Bottom Legend */}
+        <div className="absolute bottom-10 left-1/2 z-20 -translate-x-1/2 flex flex-col gap-3 rounded-2xl border border-white/10 bg-card/80 p-3 shadow-2xl backdrop-blur-xl sm:flex-row sm:items-center">
+            <div className="flex items-center gap-2">
+              <span className="h-3 w-3 rounded-full bg-orange_pothole" />
+              <span className="text-[11px] font-bold text-slate-300">Jalan Rusak</span>
             </div>
-          )}
+            <div className="flex items-center gap-2 sm:ml-2 sm:border-l sm:border-white/10 sm:pl-4">
+              <span className="h-3 w-3 rounded-full bg-red_crime" />
+              <span className="text-[11px] font-bold text-slate-300">Kejahatan</span>
+            </div>
         </div>
       </div>
     </AppShell>

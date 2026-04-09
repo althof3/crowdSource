@@ -58,13 +58,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 })}
               </nav>
 
-              <div className="mt-auto pt-6">
-                <div className="mt-6 border-t border-white/10 px-3 pt-4">
-                  <div className="text-[11px] text-slate-400">Wallet</div>
-                  <div className="mt-2">
-                    <WalletButton />
-                  </div>
-                </div>
+              <div className="mt-auto border-t border-white/10 px-3 py-6">
+                <WalletButton />
               </div>
           </aside>
 
