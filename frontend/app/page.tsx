@@ -13,7 +13,7 @@ export default function Home() {
   const [reports, setReports] = useState<Report[]>(DUMMY_REPORTS);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   
-  const [viewport, setViewport] = useState({ lat: -2.0113, lng: 117.5423, zoom: 4.19 });
+  const [viewport, setViewport] = useState({ lat: -4.5878, lng: 117.5423, zoom: 4.19 });
 
   const filtered = useMemo(() => {
     if (filter === 'all') return reports;
@@ -171,7 +171,8 @@ export default function Home() {
               <span className="text-[11px] font-bold text-slate-300">Kejahatan</span>
             </div>
         </div>
-      </div>
+
+        </div>
     </AppShell>
   );
 }
